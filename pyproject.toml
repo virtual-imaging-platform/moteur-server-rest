@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "moteur-server-rest"
+version = "0.1.0"
+description = ""
+authors = ["Hippolyte Blot <hippolytebl@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.32.3"
+flask = "^3.0.3"
+psutil = "^6.0.0"
+jpype1 = "^1.5.0"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
