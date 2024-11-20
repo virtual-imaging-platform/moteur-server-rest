@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shlex
 from jvm_utils import start_jvm, load_classpath
 from config import get_env_variable
 import jpype.imports
@@ -9,18 +10,20 @@ def launch_workflow(base_path):
     """Launch a workflow."""
     workflow_id = os.path.basename(base_path)
     os.environ['CLASSPATH'] = load_classpath()
-    
-    java_command = [
-        os.path.join(os.getenv('JAVA_HOME'), 'bin', 'java'),
-        "-Xmx950M", "-XX:PermSize=512m", "-XX:-UseGCOverheadLimit",
-        f"-Duser.home={os.getenv('CONF_LOCATION')}",
-        f"-DX509_USER_PROXY=/tmp/{workflow_id}-proxy",
-        "fr.cnrs.i3s.moteur2.client.Main",
-        "--config", f"{os.getenv('MOTEUR_HOME')}/.moteur2",
-        "-ng", "-p", os.path.basename(os.getcwd()),
-        os.path.join(base_path, "workflow.xml"),
-        os.path.join(base_path, "input.xml")
-    ]
+
+    java_command_template = get_env_variable('JAVA_COMMAND', required=True)
+    java_home = get_env_variable('JAVA_HOME', required=True)
+    moteur_home = get_env_variable('MOTEUR_HOME', required=True)
+    conf_location = get_env_variable('CONF_LOCATION', required=True)
+    current_dir = os.path.basename(os.getcwd())
+    java_command = shlex.split(java_command_template.format(
+        JAVA_HOME=java_home,
+        CONF_LOCATION=conf_location,
+        MOTEUR_HOME=moteur_home,
+        workflow_id=workflow_id,
+        base_path=base_path,
+        current_dir=current_dir
+    ))
     
     print(f"Launching workflow with command: {' '.join(java_command)}")
     with open(f'{base_path}/workflow.out', 'w') as out, open(f'{base_path}/workflow.err', 'w') as err:
@@ -31,7 +34,7 @@ def kill_workflow(workflow_id):
     print("Killing workflow...")
     
     try:
-        command = f"ps -fu vip | grep moteur2.client.Main | grep {workflow_id} | awk '{{print $2}}'"
+        command = f"ps -fu {get_env_variable('USER', required=True)} | grep moteur2.client.Main | grep {workflow_id} | awk '{{print $2}}'"
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = result.stdout.decode('utf-8').strip()
         

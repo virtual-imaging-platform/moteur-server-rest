@@ -12,7 +12,12 @@ app = Flask(__name__)
 @app.route('/submit', methods=['POST'])
 def handle_submit():
     document_root = get_env_variable("WORKFLOWS_ROOT")
-    workflow_id = f"workflow-{''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=6))}"
+    
+    alpanum = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    workflow_id = f"workflow-{''.join(random.choices(alpanum, k=6))}"
+    while os.path.exists(os.path.join(document_root, workflow_id)):
+        workflow_id = f"workflow-{''.join(random.choices(alpanum, k=6))}"
+        
     workflow_dir = os.path.join(document_root, workflow_id)
     conf_dir = os.path.join(workflow_dir, "conf")
     
@@ -20,23 +25,22 @@ def handle_submit():
 
     json_data = request.get_json()
     try:
-        write_file(os.path.join(workflow_dir, "workflow.xml"), base64.b64decode(json_data['workflow']))
+        write_file(os.path.join(workflow_dir, get_env_variable("WORKFLOW_FILE_NAME", "workflow.xml")), base64.b64decode(json_data['workflow']))
         write_file(os.path.join(workflow_dir, "input.xml"), base64.b64decode(json_data['input']))
         process_settings(base64.b64decode(json_data['settings']), conf_dir)
     except KeyError as e:
         return jsonify({"error": f"Missing required parameter: {e}"}), 400
 
-    proxy_file = f"/tmp/{workflow_id}-proxy"
-    write_file(proxy_file, base64.b64decode(json_data['proxy']))
-    os.chmod(proxy_file, 0o400)
+    if json_data['proxy'] != "" or json_data['proxy'] is not None:
+        proxy_file = f"/tmp/{workflow_id}-proxy"
+        write_file(proxy_file, base64.b64decode(json_data['proxy']))
+        os.chmod(proxy_file, 0o400)
+        
 
     launch_workflow(workflow_dir)
 
-    hostname = os.uname()[1]
-    port = get_env_variable("SERVER_PORT", "5000", required=False)
-    workflow_url = f"https://{hostname}:{port}/workflows/{workflow_id}/html/{workflow_id}.html"
-
-    return workflow_url
+    print(f"Workflow {workflow_id} submitted.")
+    return workflow_id
 
 @app.route('/kill', methods=['PUT'])
 def handle_kill():
@@ -71,5 +75,5 @@ def handle_status(workflow_id):
             workflow_status = "TERMINATED"
         else:
             workflow_status = "UNKNOWN"
-    
+    print(workflow_status)
     return workflow_status

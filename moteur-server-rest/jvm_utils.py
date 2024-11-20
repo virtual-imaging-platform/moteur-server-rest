@@ -17,8 +17,9 @@ def load_classpath():
     moteur_home = get_env_variable('MOTEUR_HOME')
     
     classpath = f"{moteur_home}/moteur2.jar"
-    for jar_file in os.listdir(f"{moteur_home}/libs"):
+    for jar_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{moteur_home}/libs")):
         classpath += f":{os.path.join(moteur_home, 'libs', jar_file)}"
-    for plugin_file in os.listdir(f"{moteur_home}/plugins"):
+    for plugin_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{moteur_home}/plugins")):
         classpath += f":{os.path.join(moteur_home, 'plugins', plugin_file)}"
+        
     return classpath

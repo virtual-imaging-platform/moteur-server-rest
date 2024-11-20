@@ -2,7 +2,10 @@
 name = "moteur-server-rest"
 version = "0.1.0"
 description = ""
-authors = ["Hippolyte Blot <hippolytebl@gmail.com>"]
+authors = [
+    "Hippolyte Blot <hippolyte.blot@creatis.insa-lyon.fr>",
+    "Axel Bonnet <axel.bonnet@creatis.insa-lyon.fr>"
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]
