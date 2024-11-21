@@ -8,3 +8,7 @@ Pour lancer le serveur, vous devez avoir Poetry installé sur votre machine. Ens
 poetry install
 poetry run python index.py
 ```
+
+
+nohup pour prod
+poetry pour dev

@@ -6,7 +6,7 @@ from config import get_env_variable
 import jpype.imports
 from jpype.types import *
 
-def launch_workflow(base_path):
+def launch_workflow(base_path, proxy_file):
     """Launch a workflow."""
     workflow_id = os.path.basename(base_path)
     os.environ['CLASSPATH'] = load_classpath()
@@ -16,12 +16,20 @@ def launch_workflow(base_path):
     moteur_home = get_env_variable('MOTEUR_HOME', required=True)
     conf_location = get_env_variable('CONF_LOCATION', required=True)
     current_dir = os.path.basename(os.getcwd())
+    workflow_name = get_env_variable('WORKFLOW_FILE_NAME', 'workflow.xml')
+    moteur_main_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+    if proxy_file:
+        proxy_file = f'-DX509_USER_PROXY={proxy_file}'
+    print(f"Launching workflow with ID: {workflow_id}")
     java_command = shlex.split(java_command_template.format(
         JAVA_HOME=java_home,
         CONF_LOCATION=conf_location,
+        PROXY_FILE=proxy_file,
         MOTEUR_HOME=moteur_home,
+        MOTEUR_MAIN_CLASS=moteur_main_class,
         workflow_id=workflow_id,
-        base_path=base_path,
+        workflow_file_path=f'{base_path}/{workflow_name}',
+        inputs_file_path=f'{base_path}/inputs.xml',
         current_dir=current_dir
     ))
     
@@ -33,8 +41,10 @@ def kill_workflow(workflow_id):
     """Kill a specific workflow and update its status in the database."""
     print("Killing workflow...")
     
+    moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+    user_name = get_env_variable('USER', required=True)
     try:
-        command = f"ps -fu {get_env_variable('USER', required=True)} | grep moteur2.client.Main | grep {workflow_id} | awk '{{print $2}}'"
+        command = f"ps -fu {user_name} | grep {moteur_process_class} | grep {workflow_id} | awk '{{print $2}}'"
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = result.stdout.decode('utf-8').strip()
         
