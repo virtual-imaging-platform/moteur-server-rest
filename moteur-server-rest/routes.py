@@ -12,7 +12,6 @@ app = Flask(__name__)
 @app.route('/submit', methods=['POST'])
 def handle_submit():
     document_root = get_env_variable("WORKFLOWS_ROOT", required=True)
-    print("Document root: ", document_root)
     
     alpanum = 'abcdefghijklmnopqrstuvwxyz0123456789'
     workflow_id = f"workflow-{''.join(random.choices(alpanum, k=6))}"
@@ -21,10 +20,7 @@ def handle_submit():
         
     workflow_dir = os.path.join(document_root, workflow_id)
     conf_dir = os.path.join(workflow_dir, "conf")
-    
-    print("Conf dir: ", conf_dir)
     create_directory(conf_dir)
-
     json_data = request.get_json()
     try:
         write_file(os.path.join(workflow_dir, get_env_variable("WORKFLOW_FILE_NAME", "workflow.xml")), base64.b64decode(json_data['workflow']))
@@ -40,7 +36,6 @@ def handle_submit():
         write_file(proxy_file, base64.b64decode(json_data['proxy']))
         os.chmod(proxy_file, 0o400)
         
-    print(f"Submitting workflow {workflow_id}...")
     launch_workflow(workflow_dir, proxy_file)
 
     print(f"Workflow {workflow_id} submitted.")
