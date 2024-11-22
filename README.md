@@ -6,6 +6,8 @@ Nouvelle version de moteur serveur. Utilisation du protocole REST et de la libra
 
 Tout d'abord, il faut créer un fichier `.env` à la racine du projet suivant la structure du fichier `.env.template`. Ce fichier contiendra les variables d'environnement nécessaires au bon fonctionnement du serveur.
 Il faut ensuite mettre à jour le fichier de configuration `/vip/.vip/vip.conf` en fonction de l'utilisateur qui va lancer le serveur et de la configuration du fichier `.env`.
+Pour le fichier `vip.conf`, il faut mettre à jour les variables `workflows.directory` et `datamanager.users.home` ainsi que `datamanager.groups.home` pour refléter les chemins réels des répertoires sur votre système.
+Il est possible d'utiliser les fichiers `.env.apache` et `.env.vip` pour configurer les variables d'environnement pour Apache et VIP, à condition de les renommer en `.env` avant de lancer le serveur.
 
 ## Lancer le serveur
 

@@ -30,7 +30,6 @@ def launch_workflow(base_path, proxy_file):
         workflow_id=workflow_id,
         workflow_file_path=f'{base_path}/{workflow_name}',
         inputs_file_path=f'{base_path}/inputs.xml',
-        current_dir=current_dir
     ))
     
     print(f"Launching workflow with command: {' '.join(java_command)}")
