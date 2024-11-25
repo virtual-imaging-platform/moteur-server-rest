@@ -20,6 +20,8 @@ def launch_workflow(base_path, proxy_file):
     moteur_main_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
     if proxy_file:
         proxy_file = f'-DX509_USER_PROXY={proxy_file}'
+    else:
+        proxy_file = ""
     print(f"Launching workflow with ID: {workflow_id}")
     java_command = shlex.split(java_command_template.format(
         JAVA_HOME=java_home,
