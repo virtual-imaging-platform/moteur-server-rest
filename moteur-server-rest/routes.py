@@ -6,10 +6,12 @@ import subprocess
 from file_utils import create_directory, write_file
 from workflow_manager import launch_workflow, kill_workflow, process_settings
 from config import get_env_variable
+from auth import require_password
 
 app = Flask(__name__)
 
 @app.route('/submit', methods=['POST'])
+@require_password
 def handle_submit():
     document_root = get_env_variable("WORKFLOWS_ROOT", required=True)
     
@@ -42,6 +44,7 @@ def handle_submit():
     return workflow_id
 
 @app.route('/kill', methods=['PUT'])
+@require_password
 def handle_kill():
     data = request.get_json()
     try:
@@ -56,6 +59,7 @@ def handle_kill():
         return jsonify({"error": f"Failed to terminate workflow {workflow_id}."}), 500
 
 @app.route('/status/<workflow_id>', methods=['GET'])
+@require_password
 def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
     current_user = get_env_variable("USER")
