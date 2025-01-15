@@ -78,7 +78,7 @@ def update_workflow_status(workflow_id, status):
 def process_settings(config, conf_dir):
     """Process and write configuration settings."""
     conf_location = get_env_variable('CONF_LOCATION')
-    default_conf_path = os.path.join(conf_location, "conf/default.conf")
+    default_conf_path = os.path.join(conf_location, "default.conf")
     
     with open(default_conf_path, 'r') as default_conf_file:
         default_conf = default_conf_file.read()
