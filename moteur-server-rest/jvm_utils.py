@@ -13,13 +13,13 @@ def shutdown_jvm():
         jpype.shutdownJVM()
 
 def load_classpath():
-    """Load and return the classpath from MOTEUR_HOME environment variable."""
-    moteur_home = get_env_variable('MOTEUR_HOME')
+    """Load and return the classpath from app_location environment variable."""
+    app_location = get_env_variable('APP_LOCATION')
     
-    classpath = f"{moteur_home}/moteurlite.jar"
-    for jar_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{moteur_home}/libs")):
-        classpath += f":{os.path.join(moteur_home, 'libs', jar_file)}"
-    for plugin_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{moteur_home}/plugins")):
-        classpath += f":{os.path.join(moteur_home, 'plugins', plugin_file)}"
+    classpath = f"{app_location}/moteurlite.jar"
+    for jar_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{app_location}/libs")):
+        classpath += f":{os.path.join(app_location, 'libs', jar_file)}"
+    for plugin_file in filter(lambda x: x.endswith(".jar"), os.listdir(f"{app_location}/plugins")):
+        classpath += f":{os.path.join(app_location, 'plugins', plugin_file)}"
         
     return classpath
