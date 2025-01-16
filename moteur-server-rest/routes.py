@@ -25,7 +25,7 @@ def handle_submit():
     create_directory(conf_dir)
     json_data = request.get_json()
     try:
-        write_file(os.path.join(workflow_dir, get_env_variable("WORKFLOW_FILE_NAME", "workflow.xml")), base64.b64decode(json_data['workflow']))
+        write_file(os.path.join(workflow_dir, get_env_variable("WORKFLOW_FILE_NAME", "workflow.json")), base64.b64decode(json_data['workflow']))
         write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
         process_settings(base64.b64decode(json_data['settings']), conf_dir)
     except KeyError as e:
@@ -63,7 +63,7 @@ def handle_kill():
 def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
     current_user = get_env_variable("USER")
-    check_process_command = f"ps -fu {current_user} | grep {workflow_id}/workflow.xml | grep -v grep"
+    check_process_command = f"ps -fu {current_user} | grep {workflow_id}/workflow.json | grep -v grep"
 
     status = subprocess.run(check_process_command, shell=True, stdout=subprocess.PIPE)
     workflow_status = "RUNNING" if status.returncode == 0 else "UNKNOWN"
