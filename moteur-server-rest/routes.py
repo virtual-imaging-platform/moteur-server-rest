@@ -26,7 +26,7 @@ def handle_submit():
     json_data = request.get_json()
     try:
         write_file(os.path.join(workflow_dir, get_env_variable("WORKFLOW_FILE_NAME", "workflow.json")), base64.b64decode(json_data['workflow']))
-        write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
+        write_file(os.path.join(workflow_dir, "inputs.json"), base64.b64decode(json_data['inputs']))
         process_settings(base64.b64decode(json_data['settings']), conf_dir)
     except KeyError as e:
         print(f"Missing required parameter: {e}")
