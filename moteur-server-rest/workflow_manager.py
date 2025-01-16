@@ -31,7 +31,7 @@ def launch_workflow(base_path, proxy_file):
         MOTEUR_MAIN_CLASS=moteur_main_class,
         workflow_id=workflow_id,
         workflow_file_path=f'{base_path}/{workflow_name}',
-        inputs_file_path=f'{base_path}/inputs.json',
+        inputs_file_path=f'{base_path}/inputs.xml',
     ))
     
     print(f"Launching workflow with command: {' '.join(java_command)}")
