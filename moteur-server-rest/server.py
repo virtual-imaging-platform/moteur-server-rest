@@ -43,7 +43,7 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 # Exemple de route
 @app.route("/")
 def index():
-    app.logger.debug("Appel du point d'accès racine")
+    app.logger.debug("Appel du root")
     return "Hello, World!"
 
 # Capture globale des exceptions non gérées
