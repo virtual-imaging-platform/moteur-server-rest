@@ -14,7 +14,7 @@ def shutdown_jvm():
 
 def load_classpath():
     """Load and return the classpath from moteur_home environment variable."""
-    moteur_home = get_env_variable('MOTEUR_HOME'
+    moteur_home = get_env_variable('MOTEUR_HOME')
     moteur_type = get_env_variable('MOTEUR_TYPE')
     
     classpath = f"{moteur_home}/{moteur_type}"

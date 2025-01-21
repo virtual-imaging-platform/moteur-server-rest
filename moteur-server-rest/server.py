@@ -8,22 +8,6 @@ import signal
 import sys
 import traceback
 
-# Logging config
-log_file = "moteur-server.log"
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
-    ]
-)
-
-logger = logging.getLogger("moteur-server")
-
-app.logger.setLevel(logging.INFO)
-app.logger.handlers = logging.getLogger().handlers
-
 # Signal management to stop the JVM
 def handle_shutdown(*args):
     logger.info("JVM shutdown...")
@@ -35,8 +19,6 @@ def handle_shutdown(*args):
     finally:
         sys.exit(0)
 
-signal.signal(signal.SIGINT, handle_shutdown)
-signal.signal(signal.SIGTERM, handle_shutdown)
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -47,9 +29,28 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
         "Error not handled : %s", exc_value, exc_info=(exc_type, exc_value, exc_traceback)
     )
 
-sys.excepthook = log_uncaught_exceptions
-
 if __name__ == '__main__':
+    log_file = "moteur-server.log"
+    # Logging config
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
+        ]
+    )
+
+    logger = logging.getLogger("moteur-server")
+
+    app.logger.setLevel(logging.INFO)
+    app.logger.handlers = logging.getLogger().handlers
+
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    sys.excepthook = log_uncaught_exceptions
+
     try:
         port = int(get_env_variable("SERVER_PORT", "5000", required=False))
         logger.info(f"Launching Flask server on port {port}...")
