@@ -63,7 +63,7 @@ def handle_kill():
 def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
     current_user = get_env_variable("USER")
-    workflow_file_name = get_env_variable('WORKFLOW_FILE_NAME')
+    workflow_file_name = get_env_variable('WORKFLOW_FILE_NAME', 'workflow.json')
     check_process_command = f"ps -fu {current_user} | grep {workflow_id}/{workflow_file_name} | grep -v grep"
 
     status = subprocess.run(check_process_command, shell=True, stdout=subprocess.PIPE)
@@ -85,5 +85,5 @@ def handle_status(workflow_id):
 
 @app.route("/")
 def index():
-    app.logger.debug("Call to /")
+    app.logger.debug("This is moteur serveur rest")
     return "Hello, World!"
