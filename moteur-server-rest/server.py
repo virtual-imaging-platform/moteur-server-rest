@@ -54,7 +54,7 @@ if __name__ == '__main__':
     try:
         port = int(get_env_variable("SERVER_PORT", "5000", required=False))
         logger.info(f"Launching Flask server on port {port}...")
-        app.run(ssl_context=("/vip/apache-tomcat-11.0.2/conf/client-identity.p12", "password"), debug=False, host='0.0.0.0', port=port)
+        app.run(debug=False, host='0.0.0.0', port=port)
     except ValueError as ve:
         logger.error("Error converting the port : %s", ve, exc_info=True)
     except Exception as e:
