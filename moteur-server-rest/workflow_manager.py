@@ -17,7 +17,7 @@ def launch_workflow(base_path, proxy_file):
     moteur_home = get_env_variable('MOTEUR_HOME', required=True)
     conf_location = get_env_variable('CONF_LOCATION', required=True)
     current_dir = os.path.basename(os.getcwd())
-    workflow_name = get_workflow_filename("WORKFLOW_FILE_NAME")
+    workflow_name = get_workflow_filename()
     moteur_main_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
     if proxy_file:
         proxy_file = f'-DX509_USER_PROXY={proxy_file}'
