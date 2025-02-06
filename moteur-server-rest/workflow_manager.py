@@ -3,6 +3,7 @@ import subprocess
 import shlex
 from jvm_utils import start_jvm, load_classpath
 from config import get_env_variable
+from config import get_workflow_filename
 import jpype.imports
 from jpype.types import *
 
@@ -16,7 +17,7 @@ def launch_workflow(base_path, proxy_file):
     moteur_home = get_env_variable('MOTEUR_HOME', required=True)
     conf_location = get_env_variable('CONF_LOCATION', required=True)
     current_dir = os.path.basename(os.getcwd())
-    workflow_name = get_env_variable('WORKFLOW_FILE_NAME', 'workflow.xml')
+    workflow_name = get_workflow_filename()
     moteur_main_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
     if proxy_file:
         proxy_file = f'-DX509_USER_PROXY={proxy_file}'
@@ -77,8 +78,8 @@ def update_workflow_status(workflow_id, status):
 
 def process_settings(config, conf_dir):
     """Process and write configuration settings."""
-    moteur_home = get_env_variable('MOTEUR_HOME')
-    default_conf_path = os.path.join(moteur_home, "conf/default.conf")
+    conf_location = get_env_variable('CONF_LOCATION')
+    default_conf_path = os.path.join(conf_location, "default.conf")
     
     with open(default_conf_path, 'r') as default_conf_file:
         default_conf = default_conf_file.read()
