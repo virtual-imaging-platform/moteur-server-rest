@@ -90,10 +90,10 @@ def process_settings(config, conf_dir):
         settings_file.write(default_conf)
         settings_file.write(config.decode('utf-8'))
 
-def copy_executor_config(config_path: str, conf_dir: str):
+def copy_executor_config(conf_path: str, conf_dir: str):
     """Copy the executor specific confiugration to the configuration workflow folder"""
-    if (len(config_path.strip()) == 0):
+    if (len(conf_path.strip()) == 0):
         return
     conf_file = os.path.join(conf_dir, "executor.json")
 
-    shutil.copy2(config_path, conf_file)
+    shutil.copy2(conf_path, conf_file)
