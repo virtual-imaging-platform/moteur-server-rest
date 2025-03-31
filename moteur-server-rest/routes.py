@@ -4,7 +4,7 @@ import random
 import os
 import subprocess
 from file_utils import create_directory, write_file
-from workflow_manager import launch_workflow, kill_workflow, process_settings
+from workflow_manager import kill_workflow_delayed, launch_workflow, process_settings
 from config import get_env_variable
 from config import get_workflow_filename
 from auth import auth
@@ -53,11 +53,11 @@ def handle_kill():
     except KeyError:
         return jsonify({"error": "Missing required parameter: workflow_id"}), 400
 
-    killed = kill_workflow(workflow_id)
+    killed = kill_workflow_delayed(workflow_id)
     if killed:
-        return jsonify({"success": f"Workflow {workflow_id} successfully terminated."})
+        return jsonify({"success": f"Workflow kill request {workflow_id} successfully created."})
     else:
-        return jsonify({"error": f"Failed to terminate workflow {workflow_id}."}), 500
+        return jsonify({"error": f"Failed to create workflow {workflow_id} kill request."}), 500
 
 @app.route('/status/<workflow_id>', methods=['GET'])
 @auth.login_required

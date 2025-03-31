@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shlex
+import threading
 from jvm_utils import start_jvm, load_classpath
 from config import get_env_variable
 from config import get_workflow_filename
@@ -59,7 +60,16 @@ def kill_workflow(workflow_id):
         print(f"Error finding or killing process: {e}")
 
     update_workflow_status(workflow_id, "Killed")
-    return True
+
+def kill_workflow_delayed(workflow_id):
+    """Trigger the `kill_workflow(workflow_id)` method after a specific delay."""
+    delay = get_env_variable("KILL_DELAY", 120, False)
+
+    try:
+        threading.Timer(delay, kill_workflow, args=[workflow_id]).start()
+        return True
+    except RuntimeError:
+        return False
 
 def update_workflow_status(workflow_id, status):
     """Update the status of a workflow in the database."""
