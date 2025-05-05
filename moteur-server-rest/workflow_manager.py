@@ -73,7 +73,7 @@ def kill_workflow(workflow_id):
 
     try:
         _kill_workflow(workflow_id, False)
-        threading.Timer(delay, kill_workflow, args=[workflow_id, True]).start()
+        threading.Timer(delay, _kill_workflow, args=[workflow_id, True]).start()
 
         return True
     except RuntimeError:
