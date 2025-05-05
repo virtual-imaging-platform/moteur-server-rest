@@ -117,7 +117,7 @@ def remove_duplicates_config(config_path: str):
             if (len(line.strip()) == 0):
                 continue
             split = line.split("=", 1)
-            if (len(split) == 2):
+            if line[0] != "#" and (len(split) == 2):
                 config[split[0].strip()] = split[1].strip()
             else:
                 config[line.strip()] = None
