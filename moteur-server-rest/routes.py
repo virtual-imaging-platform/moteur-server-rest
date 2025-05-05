@@ -5,7 +5,7 @@ import os
 import subprocess
 from flask import Flask, request, jsonify
 from file_utils import create_directory, write_file
-from workflow_manager import kill_workflow, launch_workflow, process_settings
+from workflow_manager import copy_executor_config, launch_workflow, kill_workflow, process_settings
 from config import get_env_variable
 from config import get_workflow_filename
 from auth import auth
@@ -32,6 +32,7 @@ def handle_submit():
         write_file(os.path.join(workflow_dir, get_workflow_filename()), base64.b64decode(json_data['workflow']))
         write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
         process_settings(base64.b64decode(json_data['settings']), conf_dir)
+        copy_executor_config(base64.b64decode(json_data['executorConfig']), conf_dir)
     except KeyError as e:
         logger.error(f"Missing required parameter: {e}")
         return jsonify({"error": f"Missing required parameter: {e}"}), 400

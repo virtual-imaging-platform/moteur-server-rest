@@ -1,12 +1,12 @@
 import logging
 import os
+import shutil
 import subprocess
 import shlex
 import threading
 from jvm_utils import start_jvm, load_classpath
 from config import get_env_variable
 from config import get_workflow_filename
-import jpype.imports
 from jpype.types import *
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def process_settings(config, conf_dir):
     """Process and write configuration settings."""
     conf_location = get_env_variable('CONF_LOCATION')
     default_conf_path = os.path.join(conf_location, "default.conf")
-    
+
     with open(default_conf_path, 'r') as default_conf_file:
         default_conf = default_conf_file.read()
     
@@ -106,3 +106,33 @@ def process_settings(config, conf_dir):
     with open(settings_path, 'w') as settings_file:
         settings_file.write(default_conf)
         settings_file.write(config.decode('utf-8'))
+
+    remove_duplicates_config(settings_path)
+
+def remove_duplicates_config(config_path: str):
+    config = {}
+
+    with open(config_path, "r") as file:
+        for line in file.readlines():
+            if (len(line.strip()) == 0):
+                continue
+            split = line.split("=", 1)
+            if line[0] != "#" and (len(split) == 2):
+                config[split[0].strip()] = split[1].strip()
+            else:
+                config[line.strip()] = None
+
+    with open(config_path, "w+") as file:
+        for k, v in config.items():
+            if v == None:
+                file.write(f"{k}\n")
+            else:
+                file.write(f"{k} = {v}\n")
+
+def copy_executor_config(config_path: str, conf_dir: str):
+    """Copy the executor specific configuration to the configuration workflow folder"""
+    if (len(config_path.strip()) == 0):
+        return
+    conf_file = os.path.join(conf_dir, "executor.json")
+
+    shutil.copy(config_path, conf_file)
