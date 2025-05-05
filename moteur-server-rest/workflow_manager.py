@@ -43,7 +43,7 @@ def launch_workflow(base_path, proxy_file):
     with open(f'{base_path}/workflow.out', 'w') as out, open(f'{base_path}/workflow.err', 'w') as err:
         subprocess.Popen(java_command, stdout=out, stderr=err, preexec_fn=os.setpgrp, cwd=base_path)
 
-def kill_workflow(workflow_id, hard_kill):
+def _kill_workflow(workflow_id, hard_kill):
     """Kill a specific workflow and update its status in the database."""
     
     signal = 9 if hard_kill else 15
@@ -67,12 +67,12 @@ def kill_workflow(workflow_id, hard_kill):
     except subprocess.CalledProcessError as e:
         logger.warning(f"Error finding or killing process: {e}")
 
-def kill_workflow_delayed(workflow_id):
+def kill_workflow(workflow_id):
     """Trigger the `kill_workflow(workflow_id)` method after a specific delay."""
     delay = get_env_variable("KILL_DELAY", 120, False)
 
     try:
-        kill_workflow(workflow_id, False)
+        _kill_workflow(workflow_id, False)
         threading.Timer(delay, kill_workflow, args=[workflow_id, True]).start()
 
         return True
