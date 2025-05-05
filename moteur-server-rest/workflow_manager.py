@@ -1,11 +1,15 @@
+import logging
 import os
 import shutil
 import subprocess
 import shlex
+import threading
 from jvm_utils import start_jvm, load_classpath
 from config import get_env_variable
 from config import get_workflow_filename
 from jpype.types import *
+
+logger = logging.getLogger(__name__)
 
 def launch_workflow(base_path, proxy_file):
     """Launch a workflow."""
@@ -23,7 +27,7 @@ def launch_workflow(base_path, proxy_file):
         proxy_file = f'-DX509_USER_PROXY={proxy_file}'
     else:
         proxy_file = ""
-    print(f"Launching workflow with ID: {workflow_id}")
+    logger.info(f"Launching workflow with ID: {workflow_id}")
     java_command = shlex.split(java_command_template.format(
         JAVA_HOME=java_home,
         CONF_LOCATION=conf_location,
@@ -35,31 +39,45 @@ def launch_workflow(base_path, proxy_file):
         inputs_file_path=f'{base_path}/inputs.xml',
     ))
     
-    print(f"Launching workflow with command: {' '.join(java_command)}")
+    logger.info(f"Launching workflow with command: {' '.join(java_command)}")
     with open(f'{base_path}/workflow.out', 'w') as out, open(f'{base_path}/workflow.err', 'w') as err:
         subprocess.Popen(java_command, stdout=out, stderr=err, preexec_fn=os.setpgrp, cwd=base_path)
 
-def kill_workflow(workflow_id):
+def _kill_workflow(workflow_id, hard_kill):
     """Kill a specific workflow and update its status in the database."""
-    print("Killing workflow...")
     
+    signal = 9 if hard_kill else 15
     moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
     user_name = get_env_variable('USER', required=True)
     try:
-        command = f"ps -fu {user_name} | grep {moteur_process_class} | grep {workflow_id} | awk '{{print $2}}'"
+        command = f"ps -fu {user_name} | grep {moteur_process_class} | grep {workflow_id} | grep -v grep | awk '{{print $2}}' "
+        logger.debug(f"Running command: {command}")
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = result.stdout.decode('utf-8').strip()
-        
-        if output:
-            os.system(f"kill -9 {output}")
-            print(f"Process {output} has been killed.")
-        else:
-            print("No matching process found.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error finding or killing process: {e}")
 
-    update_workflow_status(workflow_id, "Killed")
-    return True
+        if output:
+            logger.info(f"Process {output} killed with signal {signal}.")
+            os.system(f"kill -{signal} {output}")
+
+            if hard_kill:
+                update_workflow_status(workflow_id, "Killed")
+        elif not hard_kill:
+            logger.warning("No matching process found.")
+    
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Error finding or killing process: {e}")
+
+def kill_workflow(workflow_id):
+    """Trigger the `kill_workflow(workflow_id)` method after a specific delay."""
+    delay = get_env_variable("KILL_DELAY", 120, False)
+
+    try:
+        _kill_workflow(workflow_id, False)
+        threading.Timer(delay, _kill_workflow, args=[workflow_id, True]).start()
+
+        return True
+    except RuntimeError:
+        return False
 
 def update_workflow_status(workflow_id, status):
     """Update the status of a workflow in the database."""
@@ -71,7 +89,7 @@ def update_workflow_status(workflow_id, status):
     try:
         stmt.execute(f"UPDATE Workflows SET status='{status}' WHERE id='{workflow_id}'")
         conn.commit()
-        print(f"Workflow {workflow_id} status updated to {status}")
+        logger.info(f"Workflow {workflow_id} status updated to {status}")
     finally:
         stmt.close()
         conn.close()

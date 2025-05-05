@@ -1,14 +1,17 @@
-from flask import Flask, request, jsonify
+import logging
 import base64
 import random
 import os
 import subprocess
+from flask import Flask, request, jsonify
 from file_utils import create_directory, write_file
 from workflow_manager import copy_executor_config, launch_workflow, kill_workflow, process_settings
 from config import get_env_variable
 from config import get_workflow_filename
 from auth import auth
 
+
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 @app.route('/submit', methods=['POST'])
@@ -31,7 +34,7 @@ def handle_submit():
         process_settings(base64.b64decode(json_data['settings']), conf_dir)
         copy_executor_config(base64.b64decode(json_data['executorConfig']), conf_dir)
     except KeyError as e:
-        print(f"Missing required parameter: {e}")
+        logger.error(f"Missing required parameter: {e}")
         return jsonify({"error": f"Missing required parameter: {e}"}), 400
 
     proxy_file = None
@@ -42,7 +45,7 @@ def handle_submit():
         
     launch_workflow(workflow_dir, proxy_file)
 
-    print(f"Workflow {workflow_id} submitted.")
+    logger.info(f"Workflow {workflow_id} submitted.")
     return workflow_id
 
 @app.route('/kill', methods=['PUT'])
@@ -56,9 +59,9 @@ def handle_kill():
 
     killed = kill_workflow(workflow_id)
     if killed:
-        return jsonify({"success": f"Workflow {workflow_id} successfully terminated."})
+        return jsonify({"success": f"Kill signal sent to workflow {workflow_id}"})
     else:
-        return jsonify({"error": f"Failed to terminate workflow {workflow_id}."}), 500
+        return jsonify({"error": f"Failed to send kill signal to workflow {workflow_id}"}), 500
 
 @app.route('/status/<workflow_id>', methods=['GET'])
 @auth.login_required
@@ -81,7 +84,8 @@ def handle_status(workflow_id):
             workflow_status = "TERMINATED"
         else:
             workflow_status = "UNKNOWN"
-    print(workflow_status)
+    
+    logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
     return workflow_status
 
 
