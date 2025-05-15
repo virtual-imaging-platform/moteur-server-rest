@@ -116,22 +116,9 @@ def kill_workflow(workflow_id):
     except RuntimeError:
         return False
 
-def update_workflow_status(workflow_id, status):
-    """Update the status of a workflow in the database."""
-    start_jvm()
-    from java.sql import DriverManager
-    conn = DriverManager.getConnection(get_env_variable("DB_URL"), get_env_variable("DB_USER"), get_env_variable("DB_PASSWORD"))
-    stmt = conn.createStatement()
-    
-    try:
-        stmt.execute(f"UPDATE Workflows SET status='{status}' WHERE id='{workflow_id}'")
-        conn.commit()
-        logger.info(f"Workflow {workflow_id} status updated to {status}")
-    finally:
-        stmt.close()
-        conn.close()
 
-def process_settings(config, conf_dir):
+
+def process_settings(config, conf_dir, executor_config):
     """Process and write configuration settings."""
     conf_location = get_env_variable('CONF_LOCATION')
     default_conf_path = os.path.join(conf_location, "default.conf")
@@ -143,6 +130,25 @@ def process_settings(config, conf_dir):
     with open(settings_path, 'w') as settings_file:
         settings_file.write(default_conf)
         settings_file.write(config.decode('utf-8'))
+    
+    if executor_config:
+        executor_config_path = os.path.join(conf_location, executor_config.decode('utf-8'))
+        if os.path.exists(executor_config_path):
+            files_list = os.listdir(executor_config_path)
+            for file in files_list:
+                if file == "settings.conf":
+                    with open(os.path.join(executor_config_path, file), 'r') as src_file:
+                        with open(settings_path, 'a') as dst_file:
+                            dst_file.write("\n")
+                            dst_file.write(src_file.read())
+                            logger.info(f"Appended {file} to {settings_path}")
+                else:
+                    src_file = os.path.join(executor_config_path, file)
+                    dst_file = os.path.join(conf_dir, file)
+                    shutil.copy(src_file, dst_file)
+                    logger.info(f"Copied {src_file} to {dst_file}")
+        else:
+            logger.warning(f"Executor config file {executor_config_path} does not exist. Skipping copy.")
 
     remove_duplicates_config(settings_path)
 

@@ -32,8 +32,7 @@ def handle_submit():
     try:
         write_file(os.path.join(workflow_dir, get_workflow_filename()), base64.b64decode(json_data['workflow']))
         write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
-        process_settings(base64.b64decode(json_data['settings']), conf_dir)
-        copy_executor_config(base64.b64decode(json_data['executorConfig']), conf_dir)
+        process_settings(base64.b64decode(json_data['settings']), conf_dir, base64.b64decode(json_data['executorConfig']))
     except KeyError as e:
         logger.error(f"Missing required parameter: {e}")
         return jsonify({"error": f"Missing required parameter: {e}"}), 400
