@@ -5,10 +5,11 @@ import os
 import subprocess
 from flask import Flask, request, jsonify
 from file_utils import create_directory, write_file
-from workflow_manager import copy_executor_config, launch_workflow, kill_workflow, process_settings
+from workflow_manager import find_process_pids, launch_workflow, kill_workflow, process_settings
 from config import get_env_variable
 from config import get_workflow_filename
 from auth import auth
+import logging
 
 
 logger = logging.getLogger(__name__)
@@ -69,10 +70,10 @@ def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
     current_user = get_env_variable("USER")
     workflow_file_name = get_workflow_filename()
-    check_process_command = f"ps -fu {current_user} | grep {workflow_id}/{workflow_file_name} | grep -v grep"
-
-    status = subprocess.run(check_process_command, shell=True, stdout=subprocess.PIPE)
-    workflow_status = "RUNNING" if status.returncode == 0 else "UNKNOWN"
+    
+    keyword = f"{workflow_id}/{workflow_file_name}"
+    pids = find_process_pids(keyword, current_user)
+    workflow_status = "RUNNING" if pids else "UNKNOWN"
     
     if workflow_status != "RUNNING":
         check_completion_command = f"grep 'completed execution of workflow' {document_root}/{workflow_id}/workflow.out"
@@ -84,8 +85,9 @@ def handle_status(workflow_id):
             workflow_status = "TERMINATED"
         else:
             workflow_status = "UNKNOWN"
-    
-    logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
+        logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")
+    else:
+        logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
     return workflow_status
 
 

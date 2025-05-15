@@ -4,44 +4,82 @@ import shutil
 import subprocess
 import shlex
 import threading
-from jvm_utils import start_jvm, load_classpath
+from jvm_utils import load_classpath
 from config import get_env_variable
 from config import get_workflow_filename
-from jpype.types import *
+import signal
 
 logger = logging.getLogger(__name__)
 
-def launch_workflow(base_path, proxy_file):
-    """Launch a workflow."""
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
+
+def find_process_pids(keyword, user):
+    try:
+        result = subprocess.run(
+            ["pgrep", "-u", user, "-f", keyword],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False
+        )
+        output = result.stdout.decode().strip()
+        return output.splitlines() if output else []
+    except Exception as e:
+        logger.warning(f"Error running pgrep: {e}")
+        return []
+
+def launch_workflow(base_path: str, proxy_file: str = None) -> int:
+    """
+    Lance un workflow Java dans un nouveau session (start_new_session),
+    persiste son PID dans base_path/workflow.pid, et crée les logs.
+    Retourne le PID du processus Java.
+    """
     workflow_id = os.path.basename(base_path)
     os.environ['CLASSPATH'] = load_classpath()
 
-    java_command_template = get_env_variable('JAVA_COMMAND', required=True)
-    java_home = get_env_variable('JAVA_HOME', required=True)
-    moteur_home = get_env_variable('MOTEUR_HOME', required=True)
-    conf_location = get_env_variable('CONF_LOCATION', required=True)
-    current_dir = os.path.basename(os.getcwd())
-    workflow_name = get_workflow_filename()
-    moteur_main_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
-    if proxy_file:
-        proxy_file = f'-DX509_USER_PROXY={proxy_file}'
-    else:
-        proxy_file = ""
-    logger.info(f"Launching workflow with ID: {workflow_id}")
-    java_command = shlex.split(java_command_template.format(
+    # Récupération des variables d'env
+    java_cmd_tpl    = get_env_variable('JAVA_COMMAND',    required=True)
+    java_home       = get_env_variable('JAVA_HOME',       required=True)
+    moteur_home     = get_env_variable('MOTEUR_HOME',     required=True)
+    conf_location   = get_env_variable('CONF_LOCATION',   required=True)
+    moteur_main_cls = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+
+    wf_file   = os.path.join(base_path, get_workflow_filename())
+    inp_file  = os.path.join(base_path, 'inputs.xml')
+    proxy_arg = f'-DX509_USER_PROXY={proxy_file}' if proxy_file else ''
+
+    # Construction de la commande
+    cmd = shlex.split(java_cmd_tpl.format(
         JAVA_HOME=java_home,
         CONF_LOCATION=conf_location,
-        PROXY_FILE=proxy_file,
+        PROXY_FILE=proxy_arg,
         MOTEUR_HOME=moteur_home,
-        MOTEUR_MAIN_CLASS=moteur_main_class,
+        MOTEUR_MAIN_CLASS=moteur_main_cls,
         workflow_id=workflow_id,
-        workflow_file_path=f'{base_path}/{workflow_name}',
-        inputs_file_path=f'{base_path}/inputs.xml',
+        workflow_file_path=wf_file,
+        inputs_file_path=inp_file,
     ))
-    
-    logger.info(f"Launching workflow with command: {' '.join(java_command)}")
-    with open(f'{base_path}/workflow.out', 'w') as out, open(f'{base_path}/workflow.err', 'w') as err:
-        subprocess.Popen(java_command, stdout=out, stderr=err, preexec_fn=os.setpgrp, cwd=base_path)
+
+    out_path = os.path.join(base_path, 'workflow.out')
+    err_path = os.path.join(base_path, 'workflow.err')
+    logger.info(f"Lancement du workflow {workflow_id} : {' '.join(cmd)}")
+
+    with open(out_path, 'w') as stdout_f, open(err_path, 'w') as stderr_f:
+        process = subprocess.Popen(
+            cmd,
+            stdout=stdout_f,
+            stderr=stderr_f,
+            cwd=base_path,
+            start_new_session=True
+        )
+
+    # Persistance du PID
+    pid_file = os.path.join(base_path, 'workflow.pid')
+    with open(pid_file, 'w') as f:
+        f.write(str(process.pid))
+
+    logger.info(f"Workflow {workflow_id} démarré (PID={process.pid}, PGID={os.getpgid(process.pid)})")
+    return process.pid
 
 def _kill_workflow(workflow_id, hard_kill):
     """Kill a specific workflow and update its status in the database."""
@@ -50,17 +88,16 @@ def _kill_workflow(workflow_id, hard_kill):
     moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
     user_name = get_env_variable('USER', required=True)
     try:
-        command = f"ps -fu {user_name} | grep {moteur_process_class} | grep {workflow_id} | grep -v grep | awk '{{print $2}}' "
-        logger.debug(f"Running command: {command}")
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = result.stdout.decode('utf-8').strip()
+        keyword = f"{moteur_process_class}.*{workflow_id}"
+        pids = find_process_pids(keyword, user_name)
 
-        if output:
-            logger.info(f"Process {output} killed with signal {signal}.")
-            os.system(f"kill -{signal} {output}")
-
-            if hard_kill:
-                update_workflow_status(workflow_id, "Killed")
+        if pids and len(pids) > 0:
+            logger.info(f"Process {pids[0]} killed with signal {signal}.")
+            os.system(f"kill -{signal} {pids[0]}")
+        elif len(pids) > 1:
+            logger.warning(f"Multiple processes found for {keyword}.")
+            raise RuntimeError(f"Multiple processes found for {keyword}.")
+            
         elif not hard_kill:
             logger.warning("No matching process found.")
     
