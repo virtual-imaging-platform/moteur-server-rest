@@ -2,16 +2,6 @@ import jpype
 import os
 from config import get_env_variable
 
-def start_jvm():
-    """Start the JVM if it isn't already started."""
-    if not jpype.isJVMStarted():
-        jpype.startJVM(classpath=[get_env_variable("MARIADB_JAR_PATH")])
-
-def shutdown_jvm():
-    """Shutdown the JVM if it is currently running."""
-    if jpype.isJVMStarted():
-        jpype.shutdownJVM()
-
 def load_classpath():
     """Load and return the classpath from moteur_home environment variable."""
     moteur_home = get_env_variable('MOTEUR_HOME')

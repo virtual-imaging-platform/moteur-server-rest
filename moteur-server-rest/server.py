@@ -2,22 +2,10 @@ from routes import app
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
-from jvm_utils import shutdown_jvm
 from config import get_env_variable
 import signal
 import sys
 import traceback
-
-# Signal management to stop the JVM
-def handle_shutdown(*args):
-    logger.info("JVM shutdown...")
-    try:
-        shutdown_jvm()
-        logger.info("JVM succesfully stoped.")
-    except Exception as e:
-        logger.critical("Error while stopping the JVM : %s", e, exc_info=True)
-    finally:
-        sys.exit(0)
 
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
@@ -46,9 +34,6 @@ if __name__ == '__main__':
     app.logger.setLevel(logging.INFO)
     app.logger.handlers = logging.getLogger().handlers
 
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
-
     sys.excepthook = log_uncaught_exceptions
 
     try:
@@ -59,5 +44,3 @@ if __name__ == '__main__':
         logger.error("Error converting the port : %s", ve, exc_info=True)
     except Exception as e:
         logger.error("Unexpected error : %s", e, exc_info=True)
-    finally:
-        handle_shutdown()
