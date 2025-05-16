@@ -1,4 +1,3 @@
-import jpype
 import os
 from config import get_env_variable
 

@@ -67,27 +67,36 @@ def handle_kill():
 @auth.login_required
 def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
-    current_user = get_env_variable("USER")
-    workflow_file_name = get_workflow_filename()
     
-    keyword = f"{workflow_id}/{workflow_file_name}"
-    pids = find_process_pids(keyword, current_user)
+    pids = find_process_pids(workflow_id)
     workflow_status = "RUNNING" if pids else "UNKNOWN"
-    
+
     if workflow_status != "RUNNING":
-        check_completion_command = f"grep 'completed execution of workflow' {document_root}/{workflow_id}/workflow.out"
-        completed_status = subprocess.run(check_completion_command, shell=True)
+        workflow_out_path = os.path.join(document_root, workflow_id, "workflow.out")
+        logger.debug(f"Checking completion status in file: {workflow_out_path}")
         
-        if completed_status.returncode == 0:
-            workflow_status = "COMPLETE"
-        elif completed_status.returncode == 1:
-            workflow_status = "TERMINATED"
-        else:
+        try:
+            with open(workflow_out_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                if "workflow finished with status COMPLETED" in content:
+                    workflow_status = "COMPLETE"
+                elif "workflow finished with status KILL" in content:
+                    workflow_status = "TERMINATED"
+                else:
+                    workflow_status = "FAILED"
+        except FileNotFoundError:
+            logger.warning(f"workflow.out not found for workflow {workflow_id}")
             workflow_status = "UNKNOWN"
+        except Exception as e:
+            logger.error(f"Error reading workflow.out for {workflow_id}: {e}")
+            workflow_status = "UNKNOWN"
+
         logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")
     else:
         logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
+
     return workflow_status
+
 
 
 @app.route("/")

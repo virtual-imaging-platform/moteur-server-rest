@@ -1,12 +1,13 @@
 from routes import app
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask
 from config import get_env_variable
 import signal
 import sys
-import traceback
+import signal
+from dotenv import load_dotenv
 
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -19,15 +20,25 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
 
 if __name__ == '__main__':
     log_file = "moteur-server.log"
+
     # Logging config
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
             RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
         ]
     )
+    
+    # On récupère le fichier de configuration
+    if len(sys.argv) > 1:
+        logging.info("Loading config file %s", sys.argv[1])
+        config_file = sys.argv[1]
+    else:
+        logging.info("Loading default config file %s", ".env")
+        config_file = ".env"
+    load_dotenv(config_file)
 
     logger = logging.getLogger("moteur-server")
 

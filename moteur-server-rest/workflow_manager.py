@@ -7,26 +7,20 @@ import threading
 from jvm_utils import load_classpath
 from config import get_env_variable
 from config import get_workflow_filename
-import signal
 
 logger = logging.getLogger(__name__)
 
-signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-
-
-def find_process_pids(keyword, user):
-    try:
-        result = subprocess.run(
-            ["pgrep", "-u", user, "-f", keyword],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False
-        )
-        output = result.stdout.decode().strip()
-        return output.splitlines() if output else []
-    except Exception as e:
-        logger.warning(f"Error running pgrep: {e}")
-        return []
+def find_process_pids(workflow_id):
+    user = get_env_variable('USER', required=True)
+    moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+    result = subprocess.run(
+        ["pgrep", "-u", user, "-f", f"{moteur_process_class}.*{workflow_id}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False
+    )
+    output = result.stdout.decode().strip()
+    return output.splitlines() if output else []
 
 def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     """
@@ -45,7 +39,7 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     moteur_main_cls = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
 
     wf_file   = os.path.join(base_path, get_workflow_filename())
-    inp_file  = os.path.join(base_path, 'inputs.xml')
+    input_file  = os.path.join(base_path, 'inputs.xml')
     proxy_arg = f'-DX509_USER_PROXY={proxy_file}' if proxy_file else ''
 
     # Construction de la commande
@@ -57,7 +51,7 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
         MOTEUR_MAIN_CLASS=moteur_main_cls,
         workflow_id=workflow_id,
         workflow_file_path=wf_file,
-        inputs_file_path=inp_file,
+        inputs_file_path=input_file,
     ))
 
     out_path = os.path.join(base_path, 'workflow.out')
@@ -85,18 +79,15 @@ def _kill_workflow(workflow_id, hard_kill):
     """Kill a specific workflow and update its status in the database."""
     
     signal = 9 if hard_kill else 15
-    moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
-    user_name = get_env_variable('USER', required=True)
     try:
-        keyword = f"{moteur_process_class}.*{workflow_id}"
-        pids = find_process_pids(keyword, user_name)
+        pids = find_process_pids(workflow_id)
 
         if pids and len(pids) > 0:
-            logger.info(f"Process {pids[0]} killed with signal {signal}.")
             os.system(f"kill -{signal} {pids[0]}")
+            logger.info(f"Process {pids[0]} killed with signal {signal}.")
         elif len(pids) > 1:
-            logger.warning(f"Multiple processes found for {keyword}.")
-            raise RuntimeError(f"Multiple processes found for {keyword}.")
+            logger.error(f"Multiple processes found for workflow_id: {workflow_id}.")
+            raise RuntimeError(f"Multiple processes found for workflow_id: {workflow_id}.")
             
         elif not hard_kill:
             logger.warning("No matching process found.")
