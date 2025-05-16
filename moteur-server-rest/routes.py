@@ -82,15 +82,12 @@ def handle_status(workflow_id):
                 content = f.read()
                 if "workflow finished with status COMPLETED" in content:
                     workflow_status = "COMPLETE"
-                elif "workflow finished with status KILL" in content:
-                    workflow_status = "TERMINATED"
-                else:
+                elif "workflow finished with status ERROR" in content:
                     workflow_status = "FAILED"
+                else:
+                    workflow_status = "TERMINATED"
         except FileNotFoundError:
             logger.warning(f"workflow.out not found for workflow {workflow_id}")
-            workflow_status = "UNKNOWN"
-        except Exception as e:
-            logger.error(f"Error reading workflow.out for {workflow_id}: {e}")
             workflow_status = "UNKNOWN"
 
         logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")

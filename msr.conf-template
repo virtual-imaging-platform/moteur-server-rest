@@ -13,9 +13,6 @@ SERVER_PORT=
 # Java home directory
 JAVA_HOME=
 
-# Database URL
-DB_URL=
-
 # Workflow file name
 WORKFLOW_FILE_NAME=
 

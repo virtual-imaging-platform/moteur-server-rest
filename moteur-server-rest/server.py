@@ -37,7 +37,7 @@ if __name__ == '__main__':
         config_file = sys.argv[1]
     else:
         logging.info("Loading default config file %s", ".env")
-        config_file = ".env"
+        config_file = None
     load_dotenv(config_file)
 
     logger = logging.getLogger("moteur-server")

@@ -56,7 +56,6 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
 
     out_path = os.path.join(base_path, 'workflow.out')
     err_path = os.path.join(base_path, 'workflow.err')
-    logger.info(f"Lancement du workflow {workflow_id} : {' '.join(cmd)}")
 
     with open(out_path, 'w') as stdout_f, open(err_path, 'w') as stderr_f:
         process = subprocess.Popen(
@@ -71,8 +70,6 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     pid_file = os.path.join(base_path, 'workflow.pid')
     with open(pid_file, 'w') as f:
         f.write(str(process.pid))
-
-    logger.info(f"Workflow {workflow_id} démarré (PID={process.pid}, PGID={os.getpgid(process.pid)})")
     return process.pid
 
 def _kill_workflow(workflow_id, hard_kill):
