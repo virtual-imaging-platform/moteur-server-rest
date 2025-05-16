@@ -7,6 +7,9 @@ authors = [
     "Axel Bonnet <axel.bonnet@creatis.insa-lyon.fr>"
 ]
 readme = "README.md"
+packages = [
+    { include = "moteur-server-rest" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
