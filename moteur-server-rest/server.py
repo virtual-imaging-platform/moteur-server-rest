@@ -1,24 +1,13 @@
 from routes import app
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask
-from jvm_utils import shutdown_jvm
 from config import get_env_variable
 import signal
 import sys
-import traceback
+import signal
+from dotenv import load_dotenv
 
-# Signal management to stop the JVM
-def handle_shutdown(*args):
-    logger.info("JVM shutdown...")
-    try:
-        shutdown_jvm()
-        logger.info("JVM succesfully stoped.")
-    except Exception as e:
-        logger.critical("Error while stopping the JVM : %s", e, exc_info=True)
-    finally:
-        sys.exit(0)
-
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -31,23 +20,30 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
 
 if __name__ == '__main__':
     log_file = "moteur-server.log"
+
     # Logging config
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
             RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
         ]
     )
+    
+    # On récupère le fichier de configuration
+    if len(sys.argv) > 1:
+        logging.info("Loading config file %s", sys.argv[1])
+        config_file = sys.argv[1]
+    else:
+        logging.info("Loading default config file %s", ".env")
+        config_file = None
+    load_dotenv(config_file)
 
     logger = logging.getLogger("moteur-server")
 
     app.logger.setLevel(logging.INFO)
     app.logger.handlers = logging.getLogger().handlers
-
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
 
     sys.excepthook = log_uncaught_exceptions
 
@@ -59,5 +55,3 @@ if __name__ == '__main__':
         logger.error("Error converting the port : %s", ve, exc_info=True)
     except Exception as e:
         logger.error("Unexpected error : %s", e, exc_info=True)
-    finally:
-        handle_shutdown()

@@ -5,10 +5,11 @@ import os
 import subprocess
 from flask import Flask, request, jsonify
 from file_utils import create_directory, write_file
-from workflow_manager import copy_executor_config, launch_workflow, kill_workflow, process_settings
+from workflow_manager import find_process_pids, launch_workflow, kill_workflow, process_settings
 from config import get_env_variable
 from config import get_workflow_filename
 from auth import auth
+import logging
 
 
 logger = logging.getLogger(__name__)
@@ -31,8 +32,7 @@ def handle_submit():
     try:
         write_file(os.path.join(workflow_dir, get_workflow_filename()), base64.b64decode(json_data['workflow']))
         write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
-        process_settings(base64.b64decode(json_data['settings']), conf_dir)
-        copy_executor_config(base64.b64decode(json_data['executorConfig']), conf_dir)
+        process_settings(base64.b64decode(json_data['settings']), conf_dir, base64.b64decode(json_data['executorConfig']))
     except KeyError as e:
         logger.error(f"Missing required parameter: {e}")
         return jsonify({"error": f"Missing required parameter: {e}"}), 400
@@ -54,7 +54,9 @@ def handle_kill():
     data = request.get_json()
     try:
         workflow_id = data['workflowID']
+        logger.debug("Received kill request for workflow_id: %s", workflow_id)
     except KeyError:
+        logger.error("Missing required parameter: workflowID")
         return jsonify({"error": "Missing required parameter: workflow_id"}), 400
 
     killed = kill_workflow(workflow_id)
@@ -67,26 +69,33 @@ def handle_kill():
 @auth.login_required
 def handle_status(workflow_id):
     document_root = get_env_variable("WORKFLOWS_ROOT")
-    current_user = get_env_variable("USER")
-    workflow_file_name = get_workflow_filename()
-    check_process_command = f"ps -fu {current_user} | grep {workflow_id}/{workflow_file_name} | grep -v grep"
+    
+    pids = find_process_pids(workflow_id)
+    workflow_status = "RUNNING" if pids else "UNKNOWN"
 
-    status = subprocess.run(check_process_command, shell=True, stdout=subprocess.PIPE)
-    workflow_status = "RUNNING" if status.returncode == 0 else "UNKNOWN"
-    
     if workflow_status != "RUNNING":
-        check_completion_command = f"grep 'completed execution of workflow' {document_root}/{workflow_id}/workflow.out"
-        completed_status = subprocess.run(check_completion_command, shell=True)
+        workflow_out_path = os.path.join(document_root, workflow_id, "workflow.out")
+        logger.debug(f"Checking completion status in file: {workflow_out_path}")
         
-        if completed_status.returncode == 0:
-            workflow_status = "COMPLETE"
-        elif completed_status.returncode == 1:
-            workflow_status = "TERMINATED"
-        else:
+        try:
+            with open(workflow_out_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                if "workflow finished with status COMPLETED" in content or "completed execution of workflow" in content:
+                    workflow_status = "COMPLETE"
+                elif "workflow finished with status ERROR" in content:
+                    workflow_status = "FAILED"
+                else:
+                    workflow_status = "TERMINATED"
+        except FileNotFoundError:
+            logger.warning(f"workflow.out not found for workflow {workflow_id}")
             workflow_status = "UNKNOWN"
-    
-    logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
+
+        logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")
+    else:
+        logger.debug(f"Workflow: {workflow_id}, status: {workflow_status}")
+
     return workflow_status
+
 
 
 @app.route("/")

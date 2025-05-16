@@ -13,18 +13,6 @@ SERVER_PORT=
 # Java home directory
 JAVA_HOME=
 
-# Java mariadb jar path
-MARIADB_JAR_PATH=
-
-# Database URL
-DB_URL=
-
-# Database user
-DB_USER=
-
-# Database password
-DB_PASSWORD=
-
 # Workflow file name
 WORKFLOW_FILE_NAME=
 
@@ -38,4 +26,4 @@ JAVA_COMMAND=
 MOTEUR_MAIN_CLASS=
 
 # Password allowed to access the server
-SERVER_PASSWORD=pass
+SERVER_PASSWORD=

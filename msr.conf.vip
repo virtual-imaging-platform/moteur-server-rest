@@ -1,11 +1,8 @@
 # Root directory of the server
 WORKFLOWS_ROOT=/workflows
 
-# Root directory of the app
-APP_LOCATION=/vip
-
 # Configuration directory for Java
-CONF_LOCATION=/vip/moteur_conf
+CONF_LOCATION=/vip/moteur-conf
 
 # Moteur home directory
 MOTEUR_HOME=/vip/moteur
@@ -18,18 +15,6 @@ SERVER_PORT=5000
 
 # Java home directory
 JAVA_HOME=/usr/lib/jvm/jre-21
-
-# Java mariadb jar path
-MARIADB_JAR_PATH=/vip/moteur/mariadb-java-client-1.1.10.jar
-
-# Database URL
-DB_URL=jdbc:mariadb://localhost/workflowsdb
-
-# Database user
-DB_USER=vip
-
-# Database password
-DB_PASSWORD=
 
 # Workflow file name
 WORKFLOW_FILE_NAME=workflow.json
