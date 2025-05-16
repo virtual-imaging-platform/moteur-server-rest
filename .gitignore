@@ -129,6 +129,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+msr.conf
 
 # Spyder project settings
 .spyderproject
