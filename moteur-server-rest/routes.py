@@ -80,7 +80,7 @@ def handle_status(workflow_id):
         try:
             with open(workflow_out_path, "r", encoding="utf-8") as f:
                 content = f.read()
-                if "workflow finished with status COMPLETED" in content:
+                if "workflow finished with status COMPLETED" in content or "completed execution of workflow" in content:
                     workflow_status = "COMPLETE"
                 elif "workflow finished with status ERROR" in content:
                     workflow_status = "FAILED"
