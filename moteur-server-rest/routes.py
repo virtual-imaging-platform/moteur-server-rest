@@ -54,7 +54,9 @@ def handle_kill():
     data = request.get_json()
     try:
         workflow_id = data['workflowID']
+        logger.debug("Received kill request for workflow_id: %s", workflow_id)
     except KeyError:
+        logger.error("Missing required parameter: workflowID")
         return jsonify({"error": "Missing required parameter: workflow_id"}), 400
 
     killed = kill_workflow(workflow_id)
