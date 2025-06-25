@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -116,8 +117,8 @@ def process_settings(config, conf_dir, executor_config):
     
     settings_path = os.path.join(conf_dir, "settings.conf")
     with open(settings_path, 'w') as settings_file:
-        settings_file.write(default_conf)
-        settings_file.write(config.decode('utf-8'))
+        settings_file.write(default_conf + "\n")
+        settings_file.write(convert_json_to_string(config.decode('utf-8')))
     
     if executor_config:
         executor_config_path = os.path.join(conf_location, executor_config.decode('utf-8'))
@@ -126,7 +127,7 @@ def process_settings(config, conf_dir, executor_config):
             for file in files_list:
                 if file == "settings.conf":
                     with open(os.path.join(executor_config_path, file), 'r') as src_file:
-                        with open(settings_path, 'a') as dst_file:
+                        with open(settings_path, 'ax') as dst_file:
                             dst_file.write("\n")
                             dst_file.write(src_file.read())
                             logger.info(f"Appended {file} to {settings_path}")
@@ -139,6 +140,14 @@ def process_settings(config, conf_dir, executor_config):
             logger.warning(f"Executor config file {executor_config_path} does not exist. Skipping copy.")
 
     remove_duplicates_config(settings_path)
+
+def convert_json_to_string(config) -> str:
+    rows = []
+    data: dict = json.loads(config)
+
+    for k, v in data.items():
+        rows.append(f"{k}={v}")
+    return "\n".join(rows)
 
 def remove_duplicates_config(config_path: str):
     config = {}
