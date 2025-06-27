@@ -127,7 +127,7 @@ def process_settings(config, conf_dir, executor_config):
             for file in files_list:
                 if file == "settings.conf":
                     with open(os.path.join(executor_config_path, file), 'r') as src_file:
-                        with open(settings_path, 'ax') as dst_file:
+                        with open(settings_path, 'a') as dst_file:
                             dst_file.write("\n")
                             dst_file.write(src_file.read())
                             logger.info(f"Appended {file} to {settings_path}")
