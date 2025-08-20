@@ -40,7 +40,7 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     moteur_main_cls = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
 
     wf_file   = os.path.join(base_path, get_workflow_filename())
-    input_file  = os.path.join(base_path, 'inputs.xml')
+    input_file  = os.path.join(base_path, 'inputs.json')
     proxy_arg = f'-DX509_USER_PROXY={proxy_file}' if proxy_file else ''
 
     # Construction de la commande
