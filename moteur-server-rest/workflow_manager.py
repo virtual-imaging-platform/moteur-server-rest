@@ -80,15 +80,34 @@ def _kill_workflow(workflow_id, hard_kill):
     try:
         pids = find_process_pids(workflow_id)
 
-        if pids and len(pids) > 0:
-            os.system(f"kill -{signal} {pids[0]}")
-            logger.info(f"Process {pids[0]} killed with signal {signal}.")
-        elif len(pids) > 1:
+        if not pids:
+            if not hard_kill:
+                logger.warning("No matching process found.")
+            return
+
+        if len(pids) > 1:
             logger.error(f"Multiple processes found for workflow_id: {workflow_id}.")
             raise RuntimeError(f"Multiple processes found for workflow_id: {workflow_id}.")
-            
-        elif not hard_kill:
-            logger.warning("No matching process found.")
+
+        pid = int(pids[0])
+        try:
+            pgid = os.getpgid(pid)
+        except ProcessLookupError:
+            logger.warning(f"Process {pid} already gone.")
+            return
+
+        os.killpg(pgid, signal)
+        logger.info(f"Process group {pgid} killed with signal {signal}.")
+
+        result = subprocess.run(
+            ["docker", "ps", "-q", "--filter", f"name={workflow_id}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False
+        )
+        if result.stdout.decode().strip():
+            os.system(f"docker kill {workflow_id}")
+            logger.info(f"Container {workflow_id} killed.")
     
     except subprocess.CalledProcessError as e:
         logger.warning(f"Error finding or killing process: {e}")
