@@ -100,14 +100,17 @@ def _kill_workflow(workflow_id, hard_kill):
         logger.info(f"Process group {pgid} killed with signal {signal}.")
 
         result = subprocess.run(
-            ["docker", "ps", "-q", "--filter", f"name={workflow_id}"],
+            ["docker", "ps", "-q", "--filter", f"name={workflow_id}*"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False
         )
         if result.stdout.decode().strip():
-            os.system(f"docker kill {workflow_id}")
-            logger.info(f"Container {workflow_id} killed.")
+            container_ids = result.stdout.decode().strip().split('\n')
+            for container_id in container_ids:
+                if container_id.strip():
+                    os.system(f"docker kill {container_id.strip()}")
+                    logger.info(f"Container {container_id.strip()} killed.")
     
     except subprocess.CalledProcessError as e:
         logger.warning(f"Error finding or killing process: {e}")
