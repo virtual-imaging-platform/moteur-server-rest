@@ -114,30 +114,31 @@ def process_settings(config, conf_dir, executor_config):
 
     with open(default_conf_path, 'r') as default_conf_file:
         default_conf = default_conf_file.read()
-    
+
     settings_path = os.path.join(conf_dir, "settings.conf")
     with open(settings_path, 'w') as settings_file:
         settings_file.write(default_conf + "\n")
         settings_file.write(convert_json_to_string(config.decode('utf-8')))
-    
-    if executor_config:
-        executor_config_path = os.path.join(conf_location, executor_config.decode('utf-8'))
-        if os.path.exists(executor_config_path):
-            files_list = os.listdir(executor_config_path)
-            for file in files_list:
-                if file == "settings.conf":
-                    with open(os.path.join(executor_config_path, file), 'r') as src_file:
-                        with open(settings_path, 'a') as dst_file:
-                            dst_file.write("\n")
-                            dst_file.write(src_file.read())
-                            logger.info(f"Appended {file} to {settings_path}")
-                else:
-                    src_file = os.path.join(executor_config_path, file)
-                    dst_file = os.path.join(conf_dir, file)
-                    shutil.copy(src_file, dst_file)
-                    logger.info(f"Copied {src_file} to {dst_file}")
-        else:
-            logger.warning(f"Executor config file {executor_config_path} does not exist. Skipping copy.")
+
+    executor_config_path = os.path.join(conf_location, executor_config.decode('utf-8'))
+    if os.path.exists(executor_config_path):
+        files_list = os.listdir(executor_config_path)
+        if "settings.conf" not in files_list:
+            raise FileNotFoundError(f"executor configuration file: {os.path.join(executor_config_path, 'settings.conf')}")
+        for file in files_list:
+            if file == "settings.conf":
+                with open(os.path.join(executor_config_path, file), 'r') as src_file:
+                    with open(settings_path, 'a') as dst_file:
+                        dst_file.write("\n")
+                        dst_file.write(src_file.read())
+                        logger.info(f"Appended {file} to {settings_path}")
+            else:
+                src_file = os.path.join(executor_config_path, file)
+                dst_file = os.path.join(conf_dir, file)
+                shutil.copy(src_file, dst_file)
+                logger.info(f"Copied {src_file} to {dst_file}")
+    else:
+        raise FileNotFoundError(f"executor configuration folder: {executor_config_path}")
 
     remove_duplicates_config(settings_path)
 
