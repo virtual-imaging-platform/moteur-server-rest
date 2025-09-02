@@ -6,6 +6,8 @@ import signal
 import sys
 import signal
 from dotenv import load_dotenv
+import shutil
+from workflow_manager import set_docker_available
 
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
@@ -46,6 +48,9 @@ if __name__ == '__main__':
     app.logger.handlers = logging.getLogger().handlers
 
     sys.excepthook = log_uncaught_exceptions
+
+    # Détection de Docker
+    set_docker_available(shutil.which("docker") is not None)
 
     try:
         port = int(get_env_variable("SERVER_PORT", "5000", required=False))
