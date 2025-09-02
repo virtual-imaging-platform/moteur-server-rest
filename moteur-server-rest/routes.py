@@ -74,7 +74,7 @@ def handle_status(workflow_id):
     workflow_status = "RUNNING" if pids else "UNKNOWN"
 
     if workflow_status != "RUNNING":
-        workflow_out_path = os.path.join(document_root, workflow_id, "workflow.out")
+        workflow_out_path = os.path.join(document_root, workflow_id, "process.out")
         logger.debug(f"Checking completion status in file: {workflow_out_path}")
         
         try:
@@ -87,7 +87,7 @@ def handle_status(workflow_id):
                 else:
                     workflow_status = "TERMINATED"
         except FileNotFoundError:
-            logger.warning(f"workflow.out not found for workflow {workflow_id}")
+            logger.warning(f"process.out not found for workflow {workflow_id}")
             workflow_status = "UNKNOWN"
 
         logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")
