@@ -15,16 +15,50 @@ Enfin, il est nécessaire de télécharger le fichier .jar permettant de se conn
 
 ## Lancer le serveur
 
-Pour lancer le serveur en mode développement, vous devez avoir Poetry installé sur votre machine. Ensuite, il suffit de lancer la commande suivante dans le répertoire du projet moteur-server-rest:
+### Développement (uv)
+Dans le répertoire du projet `moteur-server-rest`:
 
 ```bash
-poetry install
-poetry add boutiques
-poetry run python index.py
+uv venv
+uv sync
+uv run python moteur-server-rest/server.py
 ```
 
-Pour lancer le serveur en mode production, il faudra utiliser nohup en plus de la commande précédente:
+### Production (Gunicorn via uv)
+Depuis le dossier parent contenant les fichiers de conf (par ex. `/vip/moteur-server`), sans changer de répertoire:
 
 ```bash
-nohup poetry run python index.py > app.log 2>&1 &
+uv run gunicorn -w 2 -b 0.0.0.0:5000 --pythonpath moteur-server-rest wsgi:app
+```
+
+### Service systemd (exemple)
+Fichier d'unité, par ex. `/etc/systemd/system/moteur-server.service`:
+
+```ini
+[Unit]
+Description=Moteur-server Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/vip/moteur-server
+ExecStart=/vip/.local/bin/uv run gunicorn -w 2 -b 0.0.0.0:5000 --pythonpath moteur-server-rest wsgi:app
+SuccessExitStatus=143
+Environment="PATH=/vip/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="X509_USER_PROXY=/workflows/x509up_server"
+User=vip
+Group=vip
+Restart=on-failure
+RestartSec=3
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Puis:
+
+```bash
+sudo systemctl restart msr
+sudo systemctl daemon-reload
 ```
