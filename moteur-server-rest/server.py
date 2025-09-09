@@ -4,7 +4,6 @@ from logging.handlers import RotatingFileHandler
 from config import get_env_variable
 import signal
 import sys
-import signal
 from dotenv import load_dotenv
 import shutil
 from workflow_manager import set_docker_available
