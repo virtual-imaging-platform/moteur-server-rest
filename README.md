@@ -19,9 +19,8 @@ Enfin, il est nécessaire de télécharger le fichier .jar permettant de se conn
 Dans le répertoire du projet `moteur-server-rest`:
 
 ```bash
-uv venv
 uv sync
-uv run python moteur-server-rest/server.py
+uv run moteur-server-rest/server.py
 ```
 
 ### Production (Gunicorn via uv)

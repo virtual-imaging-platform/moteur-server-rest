@@ -4,7 +4,7 @@ import signal
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-from workflow_manager import set_docker_available
+from moteur_server_rest.workflow_manager import set_docker_available
 
 """Load environment variables, ignore SIGCHLD, set Docker availability and configure logging.
 Same as server.py but without the Flask app. Adapted for WSGI."""
@@ -39,7 +39,7 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = log_uncaught_exceptions
 
-from routes import app
+from moteur_server_rest.routes import app
 
 # Configure Flask logger
 app.logger.setLevel(logging.INFO)

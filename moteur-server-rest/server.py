@@ -1,12 +1,12 @@
-from routes import app
+from moteur_server_rest.routes import app
 import logging
 from logging.handlers import RotatingFileHandler
-from config import get_env_variable
+from moteur_server_rest.config import get_env_variable
 import signal
 import sys
 from dotenv import load_dotenv
 import shutil
-from workflow_manager import set_docker_available
+from moteur_server_rest.workflow_manager import set_docker_available
 
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
