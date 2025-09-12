@@ -1,5 +1,5 @@
 from flask_httpauth import HTTPBasicAuth
-from config import get_env_variable
+from moteur_server_rest.config import get_env_variable
 
 auth = HTTPBasicAuth()
 

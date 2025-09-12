@@ -1,5 +1,6 @@
 import os
-from config import get_env_variable
+from moteur_server_rest.config import get_env_variable
+
 
 def load_classpath():
     """Load and return the classpath from moteur_home environment variable."""
