@@ -5,9 +5,9 @@ import shutil
 import subprocess
 import shlex
 import threading
-from jvm_utils import load_classpath
-from config import get_env_variable
-from config import get_workflow_filename
+from moteur_server_rest.jvm_utils import load_classpath
+from moteur_server_rest.config import get_env_variable
+from moteur_server_rest.config import get_workflow_filename
 
 logger = logging.getLogger(__name__)
 
