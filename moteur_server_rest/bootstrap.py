@@ -8,7 +8,13 @@ from moteur_server_rest.workflow_manager import set_docker_available
 
 
 def init_runtime():
-    load_dotenv()
+    if len(sys.argv) > 1:
+        logging.info("Loading config file %s", sys.argv[1])
+        config_file = sys.argv[1]
+    else:
+        logging.info("Loading default config file %s", ".env")
+        config_file = None
+    load_dotenv(config_file)
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     set_docker_available(shutil.which("docker") is not None)
 
