@@ -11,8 +11,6 @@ Pour le fichier `vip.conf`, il faut mettre à jour les variables `workflows.dire
 
 Il est possible d'utiliser les fichiers `.env.apache` et `.env.vip` pour configurer les variables d'environnement pour Apache et VIP, à condition de les renommer en `.env` avant de lancer le serveur.
 
-Enfin, il est nécessaire de télécharger le fichier .jar permettant de se connecter à la base de données mariadb et de le placer dans le répertoire indiqué par la variable d'environnement `MARIADB_JAR_PATH` du fichier `.env`. Le fichier est disponible à l'adresse suivante: https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/1.1.10/mariadb-java-client-1.1.10.jar.
-
 ## Lancer le serveur
 
 ### Développement (uv)
@@ -27,7 +25,7 @@ uv run moteur-server-rest/server.py
 Depuis le dossier parent contenant les fichiers de conf (par ex. `/vip/moteur-server`), sans changer de répertoire:
 
 ```bash
-uv run gunicorn -w 2 -b 0.0.0.0:5000 --pythonpath moteur-server-rest wsgi:app
+uv run gunicorn -w 2 -b 0.0.0.0:5000 moteur_server_rest.wsgi:app
 ```
 
 ### Service systemd (exemple)
@@ -41,9 +39,8 @@ After=syslog.target network.target
 [Service]
 Type=simple
 WorkingDirectory=/vip/moteur-server
-ExecStart=/vip/.local/bin/uv run gunicorn -w 2 -b 0.0.0.0:5000 --pythonpath moteur-server-rest wsgi:app
+ExecStart=/vip/.local/bin/uv run gunicorn -w 2 -b 0.0.0.0:5000 moteur_server_rest.wsgi:app
 SuccessExitStatus=143
-Environment="PATH=/vip/.local/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="X509_USER_PROXY=/workflows/x509up_server"
 User=vip
 Group=vip
