@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import os
 import shutil
 import signal
 import sys
@@ -8,16 +9,7 @@ from moteur_server_rest.workflow_manager import set_docker_available
 
 
 def init_runtime():
-    if len(sys.argv) > 1:
-        logging.info("Loading config file %s", sys.argv[1])
-        config_file = sys.argv[1]
-    else:
-        logging.info("Loading default config file %s", ".env")
-        config_file = None
-    load_dotenv(config_file)
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-    set_docker_available(shutil.which("docker") is not None)
-
+    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -28,6 +20,20 @@ def init_runtime():
     )
 
     logger = logging.getLogger("moteur-server")
+
+    # Config file from environment variable
+    config_file = os.environ.get("MSR_CONF_FILE")
+    if config_file:
+        logging.info("Loading config file %s", config_file)
+    else:
+        logging.info("Loading default config file %s", ".env")
+        config_file = None
+
+    # Load environment from the specified file
+    load_dotenv(config_file)
+
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    set_docker_available(shutil.which("docker") is not None)
 
     def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
