@@ -5,11 +5,18 @@ import shutil
 import subprocess
 import shlex
 import threading
-from jvm_utils import load_classpath
-from config import get_env_variable
-from config import get_workflow_filename
+from moteur_server_rest.jvm_utils import load_classpath
+from moteur_server_rest.config import get_env_variable
+from moteur_server_rest.config import get_workflow_filename
 
 logger = logging.getLogger(__name__)
+
+DOCKER_AVAILABLE = False
+
+def set_docker_available(status: bool):
+    global DOCKER_AVAILABLE
+    DOCKER_AVAILABLE = status
+    logger.info(f"Docker available: {DOCKER_AVAILABLE}")
 
 def find_process_pids(workflow_id):
     user = get_env_variable('USER', required=True)
@@ -40,7 +47,7 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     moteur_main_cls = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
 
     wf_file   = os.path.join(base_path, get_workflow_filename())
-    input_file  = os.path.join(base_path, 'inputs.xml')
+    input_file  = os.path.join(base_path, 'inputs.json')
     proxy_arg = f'-DX509_USER_PROXY={proxy_file}' if proxy_file else ''
 
     # Construction de la commande
@@ -80,15 +87,38 @@ def _kill_workflow(workflow_id, hard_kill):
     try:
         pids = find_process_pids(workflow_id)
 
-        if pids and len(pids) > 0:
-            os.system(f"kill -{signal} {pids[0]}")
-            logger.info(f"Process {pids[0]} killed with signal {signal}.")
-        elif len(pids) > 1:
+        if not pids:
+            if not hard_kill:
+                logger.warning("No matching process found.")
+            return
+
+        if len(pids) > 1:
             logger.error(f"Multiple processes found for workflow_id: {workflow_id}.")
             raise RuntimeError(f"Multiple processes found for workflow_id: {workflow_id}.")
-            
-        elif not hard_kill:
-            logger.warning("No matching process found.")
+
+        pid = int(pids[0])
+        try:
+            pgid = os.getpgid(pid)
+        except ProcessLookupError:
+            logger.warning(f"Process {pid} already gone.")
+            return
+
+        os.killpg(pgid, signal)
+        logger.info(f"Process group {pgid} killed with signal {signal}.")
+
+        if DOCKER_AVAILABLE:
+            result = subprocess.run(
+                ["docker", "ps", "-q", "--filter", f"name={workflow_id}*"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False
+            )
+            if result.stdout.decode().strip():
+                container_ids = result.stdout.decode().strip().split('\n')
+                for container_id in container_ids:
+                    if container_id.strip():
+                        os.system(f"docker kill {container_id.strip()}")
+                        logger.info(f"Container {container_id.strip()} killed.")
     
     except subprocess.CalledProcessError as e:
         logger.warning(f"Error finding or killing process: {e}")

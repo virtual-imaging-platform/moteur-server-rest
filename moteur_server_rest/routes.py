@@ -4,11 +4,11 @@ import random
 import os
 import subprocess
 from flask import Flask, request, jsonify
-from file_utils import create_directory, write_file
-from workflow_manager import find_process_pids, launch_workflow, kill_workflow, process_settings
-from config import get_env_variable
-from config import get_workflow_filename
-from auth import auth
+from moteur_server_rest.file_utils import create_directory, write_file
+from moteur_server_rest.workflow_manager import find_process_pids, launch_workflow, kill_workflow, process_settings
+from moteur_server_rest.config import get_env_variable
+from moteur_server_rest.config import get_workflow_filename
+from moteur_server_rest.auth import auth
 import logging
 
 
@@ -31,7 +31,7 @@ def handle_submit():
     json_data = request.get_json()
     try:
         write_file(os.path.join(workflow_dir, get_workflow_filename()), base64.b64decode(json_data['workflow']))
-        write_file(os.path.join(workflow_dir, "inputs.xml"), base64.b64decode(json_data['inputs']))
+        write_file(os.path.join(workflow_dir, "inputs.json"), base64.b64decode(json_data['inputs']))
         process_settings(base64.b64decode(json_data['settings']), conf_dir, base64.b64decode(json_data['executorConfig']))
     except KeyError as e:
         logger.error(f"Missing required parameter: {e}")
