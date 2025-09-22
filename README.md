@@ -11,20 +11,50 @@ Pour le fichier `vip.conf`, il faut mettre à jour les variables `workflows.dire
 
 Il est possible d'utiliser les fichiers `.env.apache` et `.env.vip` pour configurer les variables d'environnement pour Apache et VIP, à condition de les renommer en `.env` avant de lancer le serveur.
 
-Enfin, il est nécessaire de télécharger le fichier .jar permettant de se connecter à la base de données mariadb et de le placer dans le répertoire indiqué par la variable d'environnement `MARIADB_JAR_PATH` du fichier `.env`. Le fichier est disponible à l'adresse suivante: https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/1.1.10/mariadb-java-client-1.1.10.jar.
-
 ## Lancer le serveur
 
-Pour lancer le serveur en mode développement, vous devez avoir Poetry installé sur votre machine. Ensuite, il suffit de lancer la commande suivante dans le répertoire du projet moteur-server-rest:
+### Développement (uv)
+Dans le répertoire du projet `moteur-server-rest`:
 
 ```bash
-poetry install
-poetry add boutiques
-poetry run python index.py
+uv sync
+uv run moteur-server-rest/server.py
 ```
 
-Pour lancer le serveur en mode production, il faudra utiliser nohup en plus de la commande précédente:
+### Production (Gunicorn via uv)
+Depuis le dossier parent contenant les fichiers de conf (par ex. `/vip/moteur-server`), sans changer de répertoire:
 
 ```bash
-nohup poetry run python index.py > app.log 2>&1 &
+uv run gunicorn -w 2 -b 0.0.0.0:5000 moteur_server_rest.wsgi:app
+```
+
+### Service systemd (exemple)
+Fichier d'unité, par ex. `/etc/systemd/system/moteur-server.service`:
+
+```ini
+[Unit]
+Description=Moteur-server Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/vip/moteur-server
+ExecStart=/vip/.local/bin/uv run gunicorn -w 2 -b 0.0.0.0:5000 moteur_server_rest.wsgi:app
+SuccessExitStatus=143
+Environment="X509_USER_PROXY=/workflows/x509up_server"
+User=vip
+Group=vip
+Restart=on-failure
+RestartSec=3
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Puis:
+
+```bash
+sudo systemctl restart msr
+sudo systemctl daemon-reload
 ```
