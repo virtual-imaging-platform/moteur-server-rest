@@ -36,6 +36,9 @@ def handle_submit():
     except KeyError as e:
         logger.error(f"Missing required parameter: {e}")
         return jsonify({"error": f"Missing required parameter: {e}"}), 400
+    except FileNotFoundError as e:
+        logger.error(f"Missing required file/folder: {e}")
+        return jsonify({"error": f"Missing required file/folder: {e}"}), 400
 
     proxy_file = None
     if json_data['proxy'] is not None and json_data['proxy'] != "":
