@@ -74,7 +74,7 @@ def handle_status(workflow_id):
     workflow_status = "RUNNING" if pids else "UNKNOWN"
 
     if workflow_status != "RUNNING":
-        workflow_out_path = os.path.join(document_root, workflow_id, "process.out")
+        workflow_out_path = os.path.join(document_root, workflow_id, "workflow.out")
         logger.debug(f"Checking completion status in file: {workflow_out_path}")
         
         try:
