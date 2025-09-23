@@ -87,7 +87,7 @@ def handle_status(workflow_id):
                 else:
                     workflow_status = "TERMINATED"
         except FileNotFoundError:
-            logger.warning(f"process.out not found for workflow {workflow_id}")
+            logger.warning(f"workflow.out not found for workflow {workflow_id}")
             workflow_status = "UNKNOWN"
 
         logger.info(f"Workflow: {workflow_id}, status: {workflow_status}")
