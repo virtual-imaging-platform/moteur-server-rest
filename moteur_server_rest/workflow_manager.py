@@ -62,8 +62,8 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
         inputs_file_path=input_file,
     ))
 
-    out_path = os.path.join(base_path, 'workflow.out')
-    err_path = os.path.join(base_path, 'workflow.err')
+    out_path = os.path.join(base_path, 'process.out')
+    err_path = os.path.join(base_path, 'process.err')
 
     with open(out_path, 'w') as stdout_f, open(err_path, 'w') as stderr_f:
         process = subprocess.Popen(
