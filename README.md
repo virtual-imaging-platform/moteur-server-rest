@@ -18,7 +18,7 @@ Dans le répertoire du projet `moteur-server-rest`:
 
 ```bash
 uv sync
-uv run moteur-server-rest/server.py
+uv run moteur_server_rest/server.py
 ```
 
 ### Production (Gunicorn via uv)
