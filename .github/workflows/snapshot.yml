@@ -1,7 +1,7 @@
 # This is the template for the all of the Python VIP projects workflow CI integration
 # This is only for snapshots artifacts
 
-name: VIP CI Integration
+name: VIP CI Integration (snapshots)
 
 on:
   push:

@@ -1,7 +1,7 @@
 # This is the template for the all of the Python VIP projects workflow CI integration
 # This is only for release artifacts that must be triggered manually
 
-name: VIP CI Integration
+name: VIP CI Integration (releases)
 
 on:
   # this is the action for "manual" triggering using the "run workflow" button
