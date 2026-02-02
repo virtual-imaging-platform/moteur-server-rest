@@ -6,7 +6,7 @@ import subprocess
 import shlex
 import threading
 from moteur_server_rest.jvm_utils import load_classpath
-from moteur_server_rest.config import get_env_variable
+from moteur_server_rest.config import get_env_variable, get_ram_per_workflow
 from moteur_server_rest.config import get_workflow_filename
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,18 @@ def set_docker_available(status: bool):
     global DOCKER_AVAILABLE
     DOCKER_AVAILABLE = status
     logger.info(f"Docker available: {DOCKER_AVAILABLE}")
+
+def get_number_running_workflows() -> int:
+    user = get_env_variable('USER', required=True)
+    moteur_process_class = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+    result = subprocess.run(
+        ["pgrep", "-u", user, "-f", f"{moteur_process_class}.*"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False
+    )
+    output = result.stdout.decode().strip()
+    return len(output.splitlines()) if output else 0
 
 def find_process_pids(workflow_id):
     user = get_env_variable('USER', required=True)
@@ -45,6 +57,7 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     moteur_home     = get_env_variable('MOTEUR_HOME',     required=True)
     conf_location   = get_env_variable('CONF_LOCATION',   required=True)
     moteur_main_cls = get_env_variable('MOTEUR_MAIN_CLASS', required=True)
+    ram = get_ram_per_workflow()
 
     wf_file   = os.path.join(base_path, get_workflow_filename())
     input_file  = os.path.join(base_path, 'inputs.json')
@@ -53,13 +66,14 @@ def launch_workflow(base_path: str, proxy_file: str = None) -> int:
     # Construction de la commande
     cmd = shlex.split(java_cmd_tpl.format(
         JAVA_HOME=java_home,
+        RAM_WORKFLOW=ram,
         CONF_LOCATION=conf_location,
         PROXY_FILE=proxy_arg,
         MOTEUR_HOME=moteur_home,
         MOTEUR_MAIN_CLASS=moteur_main_cls,
         workflow_id=workflow_id,
         workflow_file_path=wf_file,
-        inputs_file_path=input_file,
+        inputs_file_path=input_file
     ))
 
     out_path = os.path.join(base_path, 'process.out')
@@ -134,8 +148,6 @@ def kill_workflow(workflow_id):
         return True
     except RuntimeError:
         return False
-
-
 
 def process_settings(config, conf_dir, executor_config):
     """Process and write configuration settings."""

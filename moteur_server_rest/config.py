@@ -10,3 +10,6 @@ def get_env_variable(var_name, default=None, required=True):
 def get_workflow_filename():
     """Helper function to get workflow file name"""
     return os.getenv("WORKFLOW_FILE_NAME", "workflow.json")
+
+def get_ram_per_workflow():
+    return int(get_env_variable("RAM_WORKFLOW", 256, required=False))

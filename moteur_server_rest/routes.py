@@ -2,15 +2,13 @@ import logging
 import base64
 import random
 import os
-import subprocess
 from flask import Flask, request, jsonify
 from moteur_server_rest.file_utils import create_directory, write_file
+from moteur_server_rest.sys_utils import is_enough_ram
 from moteur_server_rest.workflow_manager import find_process_pids, launch_workflow, kill_workflow, process_settings
 from moteur_server_rest.config import get_env_variable
 from moteur_server_rest.config import get_workflow_filename
 from moteur_server_rest.auth import auth
-import logging
-
 
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -18,8 +16,11 @@ app = Flask(__name__)
 @app.route('/submit', methods=['POST'])
 @auth.login_required
 def handle_submit():
+    if not is_enough_ram():
+        logger.warning("Not enough ram to launch workflow!")
+        return jsonify({"error": "Not enough ram to launch workflow!"}), 503
     document_root = get_env_variable("WORKFLOWS_ROOT", required=True)
-    
+
     alpanum = 'abcdefghijklmnopqrstuvwxyz0123456789'
     workflow_id = f"workflow-{''.join(random.choices(alpanum, k=6))}"
     while os.path.exists(os.path.join(document_root, workflow_id)):
