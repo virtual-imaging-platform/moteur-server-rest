@@ -149,73 +149,96 @@ def kill_workflow(workflow_id):
     except RuntimeError:
         return False
 
-def process_settings(config, conf_dir, executor_config):
-    """Process and write configuration settings."""
-    conf_location = get_env_variable('CONF_LOCATION')
-    default_conf_path = os.path.join(conf_location, "default.conf")
+def _process_executor_settings(config: dict, conf_dir: str, executor_config: str, conf_location: str, default_conf: str):
+    """Helper function to process settings for any executor resource."""
+    executor_config_path = os.path.join(conf_location, executor_config)
+    if not os.path.isdir(executor_config_path):
+        raise FileNotFoundError(f"Executor configuration folder: {executor_config_path}")
 
-    with open(default_conf_path, 'r') as default_conf_file:
-        default_conf = default_conf_file.read()
+    settings_source = os.path.join(executor_config_path, "settings.conf")
+    if not os.path.isfile(settings_source):
+        raise FileNotFoundError(f"Executor configuration file: {settings_source}")
 
+    os.makedirs(conf_dir, exist_ok=True)
     settings_path = os.path.join(conf_dir, "settings.conf")
     with open(settings_path, 'w') as settings_file:
         settings_file.write(default_conf + "\n")
-        settings_file.write(convert_json_to_string(config.decode('utf-8')))
+        settings_file.write(convert_dict_to_string(config))
 
-    executor_config_path = os.path.join(conf_location, executor_config.decode('utf-8'))
-    if os.path.exists(executor_config_path):
-        files_list = os.listdir(executor_config_path)
-        if "settings.conf" not in files_list:
-            raise FileNotFoundError(f"executor configuration file: {os.path.join(executor_config_path, 'settings.conf')}")
-        for file in files_list:
-            if file == "settings.conf":
-                with open(os.path.join(executor_config_path, file), 'r') as src_file:
-                    with open(settings_path, 'a') as dst_file:
-                        dst_file.write("\n")
-                        dst_file.write(src_file.read())
-                        logger.info(f"Appended {file} to {settings_path}")
-            else:
-                src_file = os.path.join(executor_config_path, file)
-                dst_file = os.path.join(conf_dir, file)
-                shutil.copy(src_file, dst_file)
-                logger.info(f"Copied {src_file} to {dst_file}")
-    else:
-        raise FileNotFoundError(f"executor configuration folder: {executor_config_path}")
+    for file in os.listdir(executor_config_path):
+        source = os.path.join(executor_config_path, file)
+        destination = os.path.join(conf_dir, file)
+        if file == "settings.conf":
+            with open(source, 'r') as src_file, open(settings_path, 'a') as dst_file:
+                dst_file.write("\n" + src_file.read())
+                logger.info(f"Appended {file} to {settings_path}")
+        elif os.path.isfile(source):
+            shutil.copy2(source, destination)
+            logger.info(f"Copied {source} to {destination}")
 
     remove_duplicates_config(settings_path)
 
-def convert_json_to_string(config) -> str:
-    rows = []
-    data: dict = json.loads(config)
+def process_settings(config, conf_dir, executor_config):
+    """Process and write configuration settings for the primary executor and the fallback resources."""
+    conf_location = get_env_variable('CONF_LOCATION')
+    config_dict = json.loads(config.decode("utf-8"))
+    default_conf_path = os.path.join(conf_location, "default.conf")
+    with open(default_conf_path, "r") as f:
+        default_conf = f.read()
 
-    for k, v in data.items():
-        rows.append(f"{k}={v}")
-    return "\n".join(rows)
+    _process_executor_settings(config_dict, conf_dir, executor_config.decode("utf-8"), conf_location, default_conf)
+    _process_fallback_resources(config_dict, conf_dir, conf_location, default_conf)
+
+def convert_dict_to_string(config: dict) -> str:
+    return "\n".join(f"{key}={value}" for key, value in config.items())
 
 def remove_duplicates_config(config_path: str):
     config = {}
 
     with open(config_path, "r") as file:
         for line in file.readlines():
-            if (len(line.strip()) == 0):
+            if len(line.strip()) == 0:
                 continue
             split = line.split("=", 1)
-            if line[0] != "#" and (len(split) == 2):
+            if not line.lstrip().startswith("#") and len(split) == 2:
                 config[split[0].strip()] = split[1].strip()
             else:
                 config[line.strip()] = None
 
     with open(config_path, "w+") as file:
         for k, v in config.items():
-            if v == None:
+            if v is None:
                 file.write(f"{k}\n")
             else:
                 file.write(f"{k} = {v}\n")
 
-def copy_executor_config(config_path: str, conf_dir: str):
-    """Copy the executor specific configuration to the configuration workflow folder"""
-    if (len(config_path.strip()) == 0):
-        return
-    conf_file = os.path.join(conf_dir, "executor.json")
+def _validate_fallback_resource(resource):
+    if not isinstance(resource, dict) or len(resource) != 1:
+        raise ValueError(f"Invalid fallback resource format: {resource}")
 
-    shutil.copy(config_path, conf_file)
+    executor_type, config_path = next(iter(resource.items()))
+    if not isinstance(executor_type, str) or not executor_type:
+        raise ValueError(f"Invalid executor type: {executor_type}")
+
+    if not isinstance(config_path, str) or not config_path:
+        raise ValueError(f"Invalid executor configuration path: {config_path}")
+
+    return executor_type, config_path
+
+def _process_fallback_resources(config: dict, conf_dir: str, conf_location: str, default_conf: str):
+    """Process and create conf folders for all fallback resources."""
+    fallback_resources = json.loads(config.get("fallback.resources", "[]"))
+    if not isinstance(fallback_resources, list):
+        raise ValueError("fallback.resources must contain a JSON list")
+
+    for resource in fallback_resources:
+        try:
+            executor_type, resource_config_path = _validate_fallback_resource(resource)
+            # Create local conf folder for this resource at workflow root
+            local_conf_dir = os.path.join(os.path.dirname(conf_dir), f"conf-{resource_config_path.lower()}")
+            # Update config with this fallback executor type
+            fallback_config = config.copy()
+            fallback_config['default.executor'] = executor_type
+            _process_executor_settings(fallback_config, local_conf_dir, resource_config_path, conf_location, default_conf)
+        except (OSError, ValueError) as e:
+            logger.exception(f"Failed to process fallback resource {resource}: {e}")
